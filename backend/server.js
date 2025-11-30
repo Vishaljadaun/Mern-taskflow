@@ -31,6 +31,10 @@ app.use("/api/auth", authRoutes);
 
 const protectedRoutes = require("./src/routes/protectedRoutes");
 app.use("/api/protected", protectedRoutes);
+
+const taskRoutes = require("./src/routes/taskRoutes");
+app.use("/api/tasks", taskRoutes);
+
 // ------------------------------
 // Connect MongoDB
 // ------------------------------
