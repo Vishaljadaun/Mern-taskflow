@@ -5,20 +5,24 @@ const Task = require("../models/Task");
 // -----------------------------
 exports.createTask = async (req, res) => {
   try {
-    const { title, description } = req.body;
+const { title, description, completed, priority, dueDate, category } = req.body;
 
     const task = await Task.create({
       user: req.user.id,
       title,
       description,
+      completed: completed || false,
+      priority: priority || "Medium",
+      dueDate: dueDate || null,
+      category: category || null,
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       message: "Task created successfully",
       task,
     });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+  } catch (error) {
+    return res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
@@ -27,11 +31,15 @@ exports.createTask = async (req, res) => {
 // -----------------------------
 exports.getTasks = async (req, res) => {
   try {
-    const tasks = await Task.find({ user: req.user.id });
+    const tasks = await Task.find({ user: req.user.id }).sort({
+      priority: -1, // High > Medium > Low
+      dueDate: 1,   // earliest first
+      createdAt: -1,
+    });
 
-    res.json(tasks);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+    return res.status(200).json(tasks);
+  } catch (error) {
+    return res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
@@ -40,21 +48,30 @@ exports.getTasks = async (req, res) => {
 // -----------------------------
 exports.updateTask = async (req, res) => {
   try {
-    const taskId = req.params.id;
+    const { id } = req.params;
 
-    const updated = await Task.findOneAndUpdate(
-      { _id: taskId, user: req.user.id },
-      req.body,
-      { new: true }
-    );
+    const task = await Task.findOne({ _id: id, user: req.user.id });
 
-    if (!updated) {
+    if (!task) {
       return res.status(404).json({ message: "Task not found" });
     }
 
-    res.json(updated);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+    // fields allowed to update
+    const { title, description, completed, priority, dueDate } = req.body;
+
+    if (title !== undefined) task.title = title;
+    if (description !== undefined) task.description = description;
+    if (completed !== undefined) task.completed = completed;
+    if (priority !== undefined) task.priority = priority;
+    if (dueDate !== undefined) task.dueDate = dueDate ? new Date(dueDate) : null;
+    if (category !== undefined) task.category = category;
+
+
+    await task.save();
+
+    return res.status(200).json(task);
+  } catch (error) {
+    return res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
